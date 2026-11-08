@@ -1,0 +1,10 @@
+# Dependencies and build output
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# Local files
+.env
+*.log
+.DS_Store
