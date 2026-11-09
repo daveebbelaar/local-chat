@@ -63,8 +63,8 @@ pnpm tauri dev
 
 The first run compiles about 360 crates. Later runs take seconds.
 
-**Check:** the window opens. The model button says "No model". In Code mode, an instruction shows the notice
-"Command code_start not found".
+**Check:** the window opens. The model button says "No model". Settings save and survive a restart, because
+`store.rs` already works.
 
 ## Step 1: connect Ollama
 
