@@ -54,8 +54,8 @@ app to models.
 **Build:**
 
 ```bash
-git clone https://github.com/daveebbelaar/e2e-local-chat.git
-cd e2e-local-chat
+git clone https://github.com/daveebbelaar/local-chat.git
+cd local-chat
 pnpm install --frozen-lockfile
 cd src-tauri && cargo fetch --locked && cd ..
 pnpm tauri dev
