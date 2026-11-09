@@ -102,7 +102,7 @@ pub struct ChatState(Mutex<Option<Arc<AtomicBool>>>);
 pub fn list_models() -> Result<Vec<ModelInfo>, String> {
     let tags = get("/api/tags")?;
     let models = tags["models"].as_array().cloned().unwrap_or_default();
-    Ok(models
+    let mut list: Vec<ModelInfo> = models
         .iter()
         .map(|m| ModelInfo {
             name: m["name"].as_str().unwrap_or_default().to_string(),
@@ -113,12 +113,25 @@ pub fn list_models() -> Result<Vec<ModelInfo>, String> {
                 .to_string(),
             context_length: m["details"]["context_length"].as_u64().unwrap_or(8192),
         })
-        .collect())
+        .collect();
+    // Optional: Apple's on-device model, on macOS 27 only.
+    if crate::apple::available() {
+        list.push(ModelInfo {
+            name: crate::apple::MODEL.to_string(),
+            size: 0,
+            parameter_size: "Apple, built in".to_string(),
+            context_length: 8192,
+        });
+    }
+    Ok(list)
 }
 
 /// Which thinking levels a model accepts. Models without thinking return `None`.
 #[tauri::command(async)]
 pub fn model_options(model: String) -> Result<ModelOptions, String> {
+    if model == crate::apple::MODEL {
+        return Ok(ModelOptions { thinking: None });
+    }
     let mut response = post("/api/show", &json!({ "model": model }))?;
     let show: Value = response.body_mut().read_json().map_err(|e| e.to_string())?;
     let thinking = show["thinking"]["values"]
@@ -134,6 +147,9 @@ pub fn model_options(model: String) -> Result<ModelOptions, String> {
 /// Two 18 GB models loaded together do not fit in 36 GB, and both would slow down.
 #[tauri::command(async)]
 pub fn unload_model(model: String) -> Result<(), String> {
+    if model == crate::apple::MODEL {
+        return Ok(()); // macOS manages Apple's model
+    }
     post("/api/generate", &json!({ "model": model, "keep_alive": 0 }))?;
     Ok(())
 }
@@ -147,7 +163,12 @@ pub fn chat(request: ChatRequest, on_event: Channel<ChatEvent>, state: State<'_,
         previous.store(true, Ordering::SeqCst);
     }
     std::thread::spawn(move || {
-        if let Err(message) = stream_answer(&request, &on_event, &stop) {
+        let result = if request.model == crate::apple::MODEL {
+            crate::apple::stream_answer(&request, &on_event, &stop)
+        } else {
+            stream_answer(&request, &on_event, &stop)
+        };
+        if let Err(message) = result {
             let _ = on_event.send(ChatEvent::Error { message });
         }
     });
