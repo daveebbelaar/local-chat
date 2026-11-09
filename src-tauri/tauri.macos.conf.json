@@ -1,0 +1,16 @@
+{
+  "app": {
+    "windows": [
+      {
+        "title": "Chat",
+        "width": 1120,
+        "height": 760,
+        "minWidth": 760,
+        "minHeight": 500,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 18, "y": 28 }
+      }
+    ]
+  }
+}

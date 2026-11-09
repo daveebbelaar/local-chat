@@ -1,23 +1,25 @@
 # Chat
 
-This is the clean starter for "Chat", a local AI desktop app for macOS and Windows. You will build a ChatGPT-style
-Chat mode on Ollama and a Claude Code-style Code mode on the Pi coding agent, with Tauri: Rust for the backend, React
-for the frontend. Everything runs on your own computer.
+"Chat" is a local AI desktop app for macOS and Windows. Chat mode is a ChatGPT-style chat on Ollama models. Code mode
+is a Claude Code-style agent: the Pi coding agent works in a folder you pick and every tool call shows as a card.
+It is built with Tauri: Rust for the backend, React for the frontend. Everything runs on your own computer.
 
-> You are on `main`, the learner starter. Active work is visible on `development`; the reviewed finished application
-> is on `solution`.
+## Branches and steps
+
+- `main` is the starter: the whole interface (React), conversation storage (`store.rs`), and configuration, but no
+  connection to any model. It compiles and opens an empty Chat window.
+- `development` adds the model connections in three commits, each with a tag. One command copies a step's Rust files
+  into your clone:
+
+| Step | Command | Adds |
+| --- | --- | --- |
+| 1 | `git checkout step-1-ollama -- src-tauri/src` | `ollama.rs`: models, streaming, Stop, tokens per second |
+| 2 | `git checkout step-2-apple -- src-tauri/src` | `apple.rs`: Apple's on-device model through `fm serve` (macOS 27) |
+| 3 | `git checkout step-3-pi -- src-tauri/src` | `pi.rs`: Code mode with the Pi coding agent |
+
+- `solution` is the reviewed, finished app (the same code as `step-3-pi`).
 
 Tutorial: <https://learn.datalumina.com/docs/local-chat>
-
-## What is included
-
-- The client brief and target architecture
-- Exact dependency pins and lockfiles
-- Tauri, Vite, and TypeScript configuration
-- The app icon
-
-Application code is intentionally absent. `src/` and `src-tauri/src/` hold only a `.gitkeep`. The tutorial builds the
-app from this starting point.
 
 ## Prerequisites
 
@@ -33,33 +35,59 @@ app from this starting point.
 
 ```bash
 pnpm install --frozen-lockfile
-cd src-tauri
-cargo fetch --locked
+cd src-tauri && cargo fetch --locked && cd ..
 ```
 
 No environment variables or API keys are needed.
 
-## Verify the starter installation
+## Run
 
-Both install commands above must finish without changing `pnpm-lock.yaml` or `src-tauri/Cargo.lock`:
-
-```bash
-git status --short
-```
-
-Expected: no output.
-
-## Choose a branch
-
-- `main`: clone this branch to follow the tutorial from the prepared starting point.
-- `development`: inspect the public working branch and later experiments.
-- `solution`: inspect the reviewed end product.
-
-To switch to the finished application:
+Start Ollama with a context window large enough for Pi:
 
 ```bash
-git switch solution
+OLLAMA_CONTEXT_LENGTH=32768 ollama serve
 ```
 
-Start with [the client brief](docs/client-brief.md), then follow the
-[complete tutorial](https://learn.datalumina.com/docs/local-chat).
+Then start the app:
+
+```bash
+pnpm tauri dev
+```
+
+## Verify
+
+```bash
+pnpm typecheck
+pnpm build
+cd src-tauri && cargo clippy --locked -- -D warnings && cargo fmt --check && cd ..
+```
+
+Manual walkthrough:
+
+1. Chat: pick a model in the composer, send a question, watch it stream, press Stop (or Escape) on a long answer.
+2. Quit and restart the app: the conversation is still in the sidebar.
+3. Code: copy `demos/broken-project` to a temporary folder, pick it, and click "Find the bug, fix it, and run the code
+   to prove it works". Pi's tool calls appear as cards; `python3 main.py` prints `OK` afterward.
+4. The two speed demos: [`demos/moe-race.md`](demos/moe-race.md) and
+   [`demos/speculative-edit.md`](demos/speculative-edit.md).
+
+## Build the desktop app
+
+```bash
+pnpm tauri build
+```
+
+- macOS: `src-tauri/target/release/bundle/macos/Chat.app` and a `.dmg` in `bundle/dmg/`.
+- Windows: a setup `.exe` in `src-tauri\target\release\bundle\nsis\`. Build it on Windows.
+
+The app is not code-signed. On macOS, right-click the app and choose Open the first time.
+
+## Where things are
+
+- `src-tauri/src/`: `ollama.rs` (HTTP to Ollama), `pi.rs` (the Pi process), `store.rs` (JSON files), `main.rs`.
+- `src/`: `App.tsx`, `Sidebar.tsx`, `ChatView.tsx`, `CodeView.tsx`, `Composer.tsx`, `ModelPicker.tsx`,
+  `Markdown.tsx`, `Settings.tsx`, `api.ts`, `pi.ts`.
+- Data: `~/Library/Application Support/com.datalumina.chat` on macOS, `%APPDATA%\com.datalumina.chat` on Windows.
+
+Start with [the client brief](docs/client-brief.md) and [the architecture](docs/architecture.md). The
+[build-along guide](docs/build-along.md) reproduces the build step by step.
